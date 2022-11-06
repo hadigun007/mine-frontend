@@ -62,11 +62,11 @@ debug: true
 env: local
 
 # Local storage path of info log.
-info_log: /Users/tennetdepositoryfullstack1/Hadi/Golang/go-admin-mysql/folow/logs/info.log
+info_log: /Users/tennetdepositoryfullstack1/Documents/abouttest/mine/logs/access.log
 # Local storage path of error log.
-error_log: /Users/tennetdepositoryfullstack1/Hadi/Golang/go-admin-mysql/folow/logs/error.log
+error_log: /Users/tennetdepositoryfullstack1/Documents/abouttest/mine/logs/access.log
 # Local storage path of access log.
-access_log: /Users/tennetdepositoryfullstack1/Hadi/Golang/go-admin-mysql/folow/logs/access.log
+access_log: /Users/tennetdepositoryfullstack1/Documents/abouttest/mine/logs/access.log
 
 # Whether to close the assets access log.
 # access_assets_log_off: false
@@ -141,10 +141,11 @@ file_upload_engine:
 # exclude_theme_components:
 # - ""
 
+
 # The local path of the boot file
-bootstrap_file_path: /Users/tennetdepositoryfullstack1/Hadi/Golang/go-admin-mysql/folow/bootstrap.go
+bootstrap_file_path: /Users/tennetdepositoryfullstack1/Documents/abouttest/mine/bootstrap.go
 # The local path of the go.mod file
-go_mod_file_path: /Users/tennetdepositoryfullstack1/Hadi/Golang/go-admin-mysql/folow/go.mod
+go_mod_file_path: /Users/tennetdepositoryfullstack1/Documents/abouttest/mine/go.mod
 
 # Whether to allow deletion of operation log.
 allow_del_operation_log: false

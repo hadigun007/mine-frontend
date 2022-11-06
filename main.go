@@ -44,6 +44,9 @@ func startServer() {
 	r.Static("/uploads", "./uploads")
 
 	eng.HTML("GET", "/hadi", pages.GetDashBoard)
+	eng.HTMLFile("GET", "/hadi/hello", "./html/hello.tmpl", map[string]interface{}{
+		"msg": "Hello world",
+	})
 
 	_ = r.Run(":8800")
 
