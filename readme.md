@@ -2,47 +2,47 @@
 /Users/tennetdepositoryfullstack1/go/pkg/mod/github.com/!go!admin!group/go-admin@v1.2.23/plugins/admin/controller
 
 
-- [ApiCreate](#api_creatego--func-h-handler-apicreatectx-contextcontext)<!-- Fungsinya -->
-- func (h *Handler) ApiCreateForm(ctx *context.Context) <!-- -->
-- func (h *handler) ApiDetail(ctx *ctx.Context) <!-- -->
-- func (h *Handler) ApiList(ctx *context.Context) <!-- -->
-- func (h *Handler) ApiUpdate(ctx *context.Context) <!-- -->
-- func (h *Handler) ApiUpdateForm(ctx *context.Context) <!-- -->
-- func (h *Handler) Auth(ctx *context.Context) <!-- Auth check the input password and username for authentication. -->
-- func (h *Handler) Logout(ctx *context.Context) <!-- Logout delete the cookie. -->
-- func (h *Handler) ShowLogin(ctx *context.Context) <!-- ShowLogin show the login page. -->
-- func (h *Hanlder) TestInfoUrl(t *testing.T) <!-- -->
-- func (h *Handler) TestIsNewUrl(t *testing.T) <!-- -->
-- func (h *Handler) Delete(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowDetail(ctx *context.Context) <!-- -->
-- func (h *Handler) ShowForm(ctx *context) <!-- -->
-- func (h *Handler) EditForm(ctx *context.Context) <!-- -->
-- func (h *Handler) GlobalDetaultHandler(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowInstall(ctx *context.Context)  <!-- -->
-- func (h *Handler) CheckDatabase(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowNewMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowEditMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) DeleteMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) EditMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) NewMenu(ctx *context.Context)  <!-- -->
-- func (h *Handler) MenuOrder(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowNewForm(ctx *context.Context)  <!-- -->
-- func (h *Handler) NewForm(ctx *context.Context)  <!-- -->
-- func (h *handler) Operation(ctx *context.Context)  <!-- -->
-- func (h *Handler) RecordOperationLog(ctx *context.Context)plugin_tmpl.go  <!-- -->
-- func (h *Handler) GetPluginsPageJS(data PluginsPageJSData) template.JS   <!-- -->
-- func (h *Handler) Plugins(ctx *context.Context)  <!-- -->
-- func (h *Handler) PluginStore(ctx *context.Context)  <!-- -->
-- func (h *Handler) PluginDetail(ctx *context.Context)  <!-- -->
-- func GetPluginBoxParamFromPlug(plug plugin.Plugin) PluginBoxParam  <!-- -->
-- func (h *Handler) PluginDownload(ctx *context.Context)  <!-- -->
-- func (h *Handler) ServerLogin(ctx *context.Context)  <!-- -->
-- func (h *Handler) ShowInfo(ctx *context.Context)  <!-- -->
-- func (h *Hanlder) Assets(ctx *context.Context)  <!-- -->
-- func (h *Handler) Export(ctx *context.Context)  <!-- -->
-- func (h *Handler) SystemInfo(ctx *context.Context)  <!-- -->
-- func (h *Handler) Update(ctx *context.Context)  <!-- -->
+- [ApiCreate](#api_creatego--func-h-handler-apicreatectx-contextcontext)
+- [ApiCreateForm](#api_creatego--func-h-handler-apicreateformctx-contextcontext)
+- [ApiDetail](#api_detailgo--func-h-handler-apidetailctx-contextcontext)
+- [ApiList](#api_listgo--func-h-handler-apilistctx-contextcontext)
+- [ApiUpdate](#api_updatego--func-h-handler-apiupdatectx-contextcontext)
+- [ApiUpdateForm](#api_updatego--func-h-handler-apiupdateformctx-contextcontext)
+- [Auth]
+- [Logout]
+- [ShowLogin] 
+- [TestInfoUrl]
+- [TestIsNewUrl]
+- [Delete] 
+- [ShowDetail]
+- [ShowForm]
+- [EditForm]
+- [GlobalDetaultHandler] 
+- [ShowInstall] 
+- [CheckDatabase] 
+- [ShowMenu] 
+- [ShowNewMenu] 
+- [ShowEditMenu] 
+- [DeleteMenu] 
+- [EditMenu] 
+- [NewMenu] 
+- [MenuOrder] 
+- [ShowNewForm] 
+- [NewForm] 
+- [Operation] 
+- [RecordOperationLog]
+- [GetPluginsPageJS] 
+- [Plugins] 
+- [PluginStore] 
+- [PluginDetail] 
+- [GetPluginBoxParamFromPlug]
+- [PluginDownload] 
+- [ServerLogin] 
+- [ShowInfo] 
+- [Assets] 
+- [Export] 
+- [SystemInfo] 
+- [Update] 
 
 
 -----------------------------------
@@ -72,7 +72,7 @@ func (h *Handler) ApiCreate(ctx *context.Context) {
 }
 ```
 
-- api_create.go > func (h *Handler) ApiCreateForm(ctx *context.Context)
+##### api_create.go > func (h *Handler) ApiCreateForm(ctx *context.Context)
 ``` shell
 # 
 func (h *Handler) ApiCreateForm(ctx *context.Context) {
@@ -109,8 +109,7 @@ func (h *Handler) ApiCreateForm(ctx *context.Context) {
 }
 ```
 
-
-- api_detail.go > func (h *Handler) ApiDetail(ctx *context.Context)
+##### api_detail.go > func (h *Handler) ApiDetail(ctx *context.Context)
 ``` shell
 # 
 func (h *Handler) ApiDetail(ctx *context.Context) {
@@ -226,8 +225,7 @@ $('.delete-btn').on('click', function (event) {
 
 ```
 
-
-- api_list.go > func (h *Handler) ApiList(ctx *context.Context)
+##### api_list.go > func (h *Handler) ApiList(ctx *context.Context)
 ``` shell
 # 
 func (h *Handler) ApiList(ctx *context.Context) {
@@ -262,8 +260,7 @@ func (h *Handler) ApiList(ctx *context.Context) {
 }
 ```
 
-
-- api_update.go > func (h *Handler) ApiUpdate(ctx *context.Context)
+##### api_update.go > func (h *Handler) ApiUpdate(ctx *context.Context)
 ``` shell
 # 
 func (h *Handler) ApiUpdate(ctx *context.Context) {
@@ -296,7 +293,7 @@ func (h *Handler) ApiUpdate(ctx *context.Context) {
 
 ```
 
-- api_update.go > func (h *Handler) ApiUpdateForm(ctx *context.Context)
+##### api_update.go > func (h *Handler) ApiUpdateForm(ctx *context.Context)
 ``` shell
 # 
 func (h *Handler) ApiUpdateForm(ctx *context.Context) {
