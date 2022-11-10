@@ -2,12 +2,12 @@
 /Users/tennetdepositoryfullstack1/go/pkg/mod/github.com/!go!admin!group/go-admin@v1.2.23/plugins/admin/controller
 
 
-- [ApiCreate](#api_creatego--func-h-handler-apicreatectx-contextcontext)
-- [ApiCreateForm](#api_creatego--func-h-handler-apicreateformctx-contextcontext)
-- [ApiDetail](#api_detailgo--func-h-handler-apidetailctx-contextcontext)
-- [ApiList](#api_listgo--func-h-handler-apilistctx-contextcontext)
-- [ApiUpdate](#api_updatego--func-h-handler-apiupdatectx-contextcontext)
-- [ApiUpdateForm](#api_updatego--func-h-handler-apiupdateformctx-contextcontext)
+- [ApiCreate](#api_creatego--apicreate)
+- [ApiCreateForm](#api_creatego--apicreateform)
+- [ApiDetail](#api_detailgo--apidetail)
+- [ApiList](#api_listgo--apilist)
+- [ApiUpdate](#api_updatego--apiupdate)
+- [ApiUpdateForm](#api_updatego--apiupdateform)
 - [Auth]
 - [Logout]
 - [ShowLogin] 
@@ -48,9 +48,9 @@
 -----------------------------------
 ### Controller API
 
-##### api_create.go > func (h *Handler) ApiCreate(ctx *context.Context) 
+##### api_create.go > ApiCreate
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiCreate(ctx *context.Context) {
 	param := guard.GetNewFormParam(ctx)
 
@@ -72,9 +72,9 @@ func (h *Handler) ApiCreate(ctx *context.Context) {
 }
 ```
 
-##### api_create.go > func (h *Handler) ApiCreateForm(ctx *context.Context)
+##### api_create.go > ApiCreateForm
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiCreateForm(ctx *context.Context) {
 
 	var (
@@ -109,9 +109,9 @@ func (h *Handler) ApiCreateForm(ctx *context.Context) {
 }
 ```
 
-##### api_detail.go > func (h *Handler) ApiDetail(ctx *context.Context)
+##### api_detail.go > ApiDetail
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiDetail(ctx *context.Context) {
 	prefix := ctx.Query(constant.PrefixKey)
 	id := ctx.Query(constant.DetailPKKey)
@@ -225,9 +225,9 @@ $('.delete-btn').on('click', function (event) {
 
 ```
 
-##### api_list.go > func (h *Handler) ApiList(ctx *context.Context)
+##### api_list.go > ApiList
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiList(ctx *context.Context) {
 	prefix := ctx.Query(constant.PrefixKey)
 
@@ -260,9 +260,9 @@ func (h *Handler) ApiList(ctx *context.Context) {
 }
 ```
 
-##### api_update.go > func (h *Handler) ApiUpdate(ctx *context.Context)
+##### api_update.go > ApiUpdate
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiUpdate(ctx *context.Context) {
 	param := guard.GetEditFormParam(ctx)
 
@@ -293,9 +293,9 @@ func (h *Handler) ApiUpdate(ctx *context.Context) {
 
 ```
 
-##### api_update.go > func (h *Handler) ApiUpdateForm(ctx *context.Context)
+##### api_update.go > ApiUpdateForm
 ``` shell
-# 
+# Learning
 func (h *Handler) ApiUpdateForm(ctx *context.Context) {
 	params := guard.GetShowFormParam(ctx)
 
