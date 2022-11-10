@@ -2,7 +2,7 @@
 /Users/tennetdepositoryfullstack1/go/pkg/mod/github.com/!go!admin!group/go-admin@v1.2.23/plugins/admin/controller
 
 
-[- func (h *Handler) ApiCreate(ctx *context.Context)](api_create.go > func (h *Handler) ApiCreate(ctx *context.Context))<!--  -->
+- func (h *Handler) [ApiCreate](#api_creatego--func-h-handler-apicreatectx-contextcontext)<!--  -->
 - func (h *Handler) ApiCreateForm(ctx *context.Context) <!-- -->
 - func (h *handler) ApiDetail(ctx *ctx.Context) <!-- -->
 - func (h *Handler) ApiList(ctx *context.Context) <!-- -->
