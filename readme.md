@@ -1,8 +1,8 @@
-<h1>GoAdmin References</h1>
+<center><h1>GoAdmin References</h1></center>
 
-# [Controller](#controllers) | [Database](#database)
+## [Controller](#controllers) | [Database](#databases)
 
-## Controllers
+### Controllers
 - [ApiCreate](#api_creatego--apicreate)
 - [ApiCreateForm](#api_creatego--apicreateform)
 - [ApiDetail](#api_detailgo--apidetail)
@@ -1934,4 +1934,4 @@ func TestIsNewUrl(t *testing.T) {
 
 ---------------
 
-## Database
+### Databases
