@@ -1,6 +1,7 @@
 <center><h1>GoAdmin References</h1></center>
 
 ## [Controller](#controllers) | [Database](#databases)
+## Quick Rerefence
 
 ### Controllers
 - [ApiCreate](#api_creatego--apicreate)
@@ -46,6 +47,7 @@
 - [TestIsNewUrl](#common_testgo--testisnewurl)
 
 -----------------------------------
+[UP](#quick-rerefence)
 ### Controller API
 
 ##### api_create.go > ApiCreate
@@ -1933,5 +1935,5 @@ func TestIsNewUrl(t *testing.T) {
 ```
 
 ---------------
-
+[UP](#quick-rerefence)
 ### Databases
