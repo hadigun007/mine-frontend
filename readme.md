@@ -48,6 +48,128 @@
 
 -----------------------------------
 [UP](#quick-rerefence)
+### Databases
+- [Dialect](#dialect-struct)
+- [DB](#database-struct)
+------------------------------------
+#### Dialect Struct
+- [Dialect]
+- [SQLComponent]
+- [Where]
+- [Join]
+- [RawData]
+#### Dialect Function
+- [Insert] 
+- [Delete]
+- [Update]
+- [Count]
+- [Select]
+- [ShowColumns]
+- [GetName]
+- [WrapTableName]
+- [ShowTables]
+- [GetDelimeter]
+- [GetDelimeter2]
+- [GetDelimeters]
+- [GetDialect]
+- [GetDialectByDriver]
+---------------------------
+#### Database Struct
+- [Base]
+- [Connection]
+- [SQLTx]
+- [MYSQL]
+- [SQL]
+- [Database_DataType]
+#### Database Function
+- [Close]
+- [GetDB]
+- [CreateDB]
+- [GetConfig]
+- [GetConnectionByDriver]
+- [GetConnectionFromService]
+- [GetConnection]
+- [GetAggregationExpression]
+- [CheckError]
+- [SetColVarType]
+- [SetResutlValue]
+- [GetMysqlDB]
+- [Name]
+- [GetDelimeter]
+- [GetDelimeter2]
+- [GetDelimeters]
+- [InitDB]
+- [QueryWithConnection]
+- [ExecWithConnection]
+- [Query]
+- [Exec]
+- [QueryWithTX]
+- [ExecWithTX]
+- [QueryWith]
+- [ExecWith]
+- [BeginTxWithReadUncommitted]
+- [BeginTxWithReadCommitted]
+- [BeginTxWithRepeatableRead]
+- [BeginTx]
+- [BeginTxWithLevel]
+- [BeginTxWithReadUncommittedAndConnection]
+- [BeginTxWithReadCommittedAndConnection]
+- [BeginTxWithRepeatableReadAndConnection]
+- [BeginTxAndConnection]
+- [BeginTxWithLevelAndConnection]
+- [CommonQuery]
+- [CommonExec]
+- [CommonQueryWithTx]
+- [CommonExecWithTx]
+- [CommonBeginTxWithLevel]
+- [Table]
+- [WithDriver]
+- [WithDriverAndConnection]
+- [WithDriver]
+- [WithConnection]
+- [WithTx]
+- [Table]
+- [Select]
+- [OrderBy]
+- [OrderByRaw]
+- [GroupBy]
+- [GroupByraw]
+- [Skip]
+- [Take]
+- [Where]
+- [WhereIn]
+- [WhereNotIn]
+- [Find]
+- [Count]
+- [Sum]
+- [Max]
+- [Min]
+- [Avg]
+- [WhereRaw]
+- [UpdateRaw]
+- [LeftJoin]
+- [WithTransaction]
+- [WithTransactionByLevel]
+- [First]
+- [All]
+- [ShowColumns]
+- [ShowTables]
+- [Update]
+- [Delete]
+- [Exec]
+- [Insert]
+- [Insert]
+- [DT]
+- [GetDTAndCheck]
+- [Contains]
+- [ToInt64]
+- [String]
+- [HTML]
+- [GetValueFromDatabaseType]
+- [GetValueFromSQLOfDatabaseType]
+- [GetValueFromJSONOfDatabaseType]
+
+-----------------------------------
 ### Controller API
 
 ##### api_create.go > ApiCreate
@@ -1931,9 +2053,9 @@ func TestIsNewUrl(t *testing.T) {
 	u := "https://localhost:8098/admin/info/user/new?id=sdfs"
 	assert.Equal(t, true, isNewUrl(u, "user"))
 }
-
 ```
 
----------------
+--------------------------
+
 [UP](#quick-rerefence)
-### Databases
+### Database
