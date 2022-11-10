@@ -1,2 +1,4 @@
 2022-11-07T00:09:41.800+0700	[34mINFO[0m	engine/engine.go:402	=====> Initialize database connections
 2022-11-07T00:09:41.925+0700	[34mINFO[0m	engine/engine.go:402	=====> Initialize configuration
+2022-11-08T14:20:10.428+0700	[34mINFO[0m	engine/engine.go:402	=====> Initialize database connections
+2022-11-08T14:20:10.498+0700	[34mINFO[0m	engine/engine.go:402	=====> Initialize configuration
