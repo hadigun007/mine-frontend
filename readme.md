@@ -11,8 +11,6 @@
 - [Auth](#authgo--auth)
 - [Logout](#authgo--logout)
 - [ShowLogin](#authgo--showlogin)
-- [TestInfoUrl]
-- [TestIsNewUrl]
 - [Delete](#deletego--delete)
 - [ShowDetail](#detailgo--detail)
 - [ShowForm](#editgo--showform)
@@ -27,22 +25,24 @@
 - [EditMenu](#menugo--editmenu)
 - [NewMenu](#menugo--newmenu)
 - [MenuOrder](#menugo--menuorder)
-- [ShowNewForm]
-- [NewForm] 
-- [Operation] 
-- [RecordOperationLog]
-- [GetPluginsPageJS] 
-- [Plugins] 
-- [PluginStore] 
-- [PluginDetail] 
-- [GetPluginBoxParamFromPlug]
-- [PluginDownload] 
-- [ServerLogin] 
-- [ShowInfo] 
-- [Assets] 
-- [Export] 
-- [SystemInfo] 
-- [Update] 
+- [ShowNewForm](#newgo--shownewform)
+- [NewForm](#newgo--newform)
+- [Operation](#operationgo--operation)
+- [RecordOperationLog](#operationgo--recordoperationlog)
+- [GetPluginsPageJS](#plugins_tmplgo--getpluginpagejs)
+- [Plugins](#pluginsgo--plugins)
+- [PluginStore](#pluginsgo--pluginstore)
+- [PluginDetail](#pluginsgo--plugindetail)
+- [GetPluginBoxParamFromPlug](#pluginsgo--getpluginparamfromplug)
+- [PluginDownload](#pluginsgo--plugindownload)
+- [ServerLogin](#pluginsgo--serverlogin)
+- [ShowInfo](#showgo--showinfo)
+- [Assets](#showgo--assets)
+- [Export](#showgo--export)
+- [SystemInfo](#systemgo--systeminfo)
+- [Update](#updatego--update)
+- [TestInfoUrl](#common_testgo--testisinfourl)
+- [TestIsNewUrl](#common_testgo--testisnewurl)
 
 
 -----------------------------------
@@ -998,6 +998,7 @@ func (h *Handler) NewMenu(ctx *context.Context) {
 
 ##### menu.go > MenuOrder
 ``` shell 
+# MenuOrder change the order of menu items
 func (h *Handler) MenuOrder(ctx *context.Context) {
 
 	var data []map[string]interface{}
@@ -1007,4 +1008,926 @@ func (h *Handler) MenuOrder(ctx *context.Context) {
 
 	response.Ok(ctx)
 }
+```
+
+##### new.go > ShowNewForm 
+``` shell 
+# ShowNewFormnshow a new form page
+func (h *Handler) ShowNewForm(ctx *context.Context) {
+	param := guard.GetShowNewFormParam(ctx)
+	h.showNewForm(ctx, "", param.Prefix, param.Param.GetRouteParamStr(), false)
+}
+```
+
+##### new.go > NewForm 
+``` shell 
+# NewForm insert table row into database
+func (h *Handler) NewForm(ctx *context.Context) {
+
+	param := guard.GetNewFormParam(ctx)
+
+	// process uploading files, only support local storage
+	if len(param.MultiForm.File) > 0 {
+		err := file.GetFileEngine(h.config.FileUploadEngine.Name).Upload(param.MultiForm)
+		if err != nil {
+			logger.Error("get file engine error: ", err)
+			if ctx.WantJSON() {
+				response.Error(ctx, err.Error())
+			} else {
+				h.showNewForm(ctx, aAlert().Warning(err.Error()), param.Prefix, param.Param.GetRouteParamStr(), true)
+			}
+			return
+		}
+	}
+
+	err := param.Panel.InsertData(param.Value())
+	if err != nil {
+		logger.Error("insert data error: ", err)
+		if ctx.WantJSON() {
+			response.Error(ctx, err.Error(), map[string]interface{}{
+				"token": h.authSrv().AddToken(),
+			})
+		} else {
+			h.showNewForm(ctx, aAlert().Warning(err.Error()), param.Prefix, param.Param.GetRouteParamStr(), true)
+		}
+		return
+	}
+
+	f := param.Panel.GetActualNewForm()
+
+	if f.Responder != nil {
+		f.Responder(ctx)
+		return
+	}
+
+	if ctx.WantJSON() && !param.IsIframe {
+		response.OkWithData(ctx, map[string]interface{}{
+			"url":   param.PreviousPath,
+			"token": h.authSrv().AddToken(),
+		})
+		return
+	}
+
+	if !param.FromList {
+
+		if isNewUrl(param.PreviousPath, param.Prefix) {
+			h.showNewForm(ctx, param.Alert, param.Prefix, param.Param.GetRouteParamStr(), true)
+			return
+		}
+
+		ctx.HTML(http.StatusOK, fmt.Sprintf(`<script>location.href="%s"</script>`, param.PreviousPath))
+		ctx.AddHeader(constant.PjaxUrlHeader, param.PreviousPath)
+		return
+	}
+
+	if param.IsIframe {
+		ctx.HTML(http.StatusOK, fmt.Sprintf(`<script>
+		swal('%s', '', 'success');
+		setTimeout(function(){
+			$("#%s", window.parent.document).hide();
+			$('.modal-backdrop.fade.in', window.parent.document).hide();
+		}, 1000)
+</script>`, language.Get("success"), param.IframeID))
+		return
+	}
+
+	buf := h.showTable(ctx, param.Prefix, param.Param, nil)
+
+	ctx.HTML(http.StatusOK, buf.String())
+	ctx.AddHeader(constant.PjaxUrlHeader, h.routePathWithPrefix("info", param.Prefix)+param.Param.GetRouteParamStr())
+}
+```
+
+##### plugins_tmpl.go > GetPluginPageJS
+``` shell
+# ...
+func GetPluginsPageJS(data PluginsPageJSData) template.JS {
+	t := template.New("plugins_page_js").Funcs(map[string]interface{}{
+		"lang":     language.Get,
+		"plugWord": plugWord,
+	})
+	t, err := t.Parse(pluginsPageJS)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	buf := new(bytes.Buffer)
+	err = t.Execute(buf, data)
+	if err != nil {
+		logger.Error(err)
+		return ""
+	}
+	return template.JS(buf.String())
+
+}
+```
+
+##### plugins.go > Plugins 
+``` shell
+# ...
+func (h *Handler) Plugins(ctx *context.Context) {
+	list := plugins.Get()
+	size := types.Size(6, 3, 2)
+	rows := template.HTML("")
+	if h.config.IsNotProductionEnvironment() {
+		getMoreCover := config.Url("/assets/dist/img/plugin_more.png")
+		list = list.Add(plugins.NewBasePluginWithInfoAndIndexURL(plugins.Info{
+			Title:     "get more plugins",
+			Name:      "",
+			MiniCover: getMoreCover,
+			Cover:     getMoreCover,
+		}, config.Url("/plugins/store"), true))
+	}
+	for i := 0; i < len(list); i += 6 {
+		box1 := aBox().
+			SetBody(h.pluginBox(GetPluginBoxParamFromPlug(list[i]))).
+			GetContent()
+		content := aCol().SetSize(size).SetContent(box1).GetContent()
+		offset := len(list) - i
+		if offset > 6 {
+			offset = 6
+		}
+		for j := i + 1; j < offset; j++ {
+			box2 := aBox().
+				SetBody(h.pluginBox(GetPluginBoxParamFromPlug(list[j]))).
+				GetContent()
+			content += aCol().SetSize(size).SetContent(box2).GetContent()
+		}
+		rows += aRow().SetContent(content).GetContent()
+	}
+	h.HTML(ctx, auth.Auth(ctx), types.Panel{
+		Content:     rows,
+		CSS:         pluginsPageCSS,
+		Description: language.GetFromHtml("plugins"),
+		Title:       language.GetFromHtml("plugins"),
+	})
+}
+```
+
+##### plugins.go > PluginStore
+``` shell
+func (h *Handler) PluginStore(ctx *context.Context) {
+	var (
+		size       = types.Size(12, 6, 4)
+		list, page = plugins.GetAll(
+			remote_server.GetOnlineReq{
+				Page:       ctx.Query("page"),
+				Free:       ctx.Query("free"),
+				PageSize:   ctx.Query("page_size"),
+				Filter:     ctx.Query("filter"),
+				Order:      ctx.Query("order"),
+				Lang:       h.config.Language,
+				Version:    system.Version(),
+				CategoryId: ctx.Query("category_id"),
+			}, ctx.Cookie(remote_server.TokenKey))
+		rows = template.HTML(page.HTML)
+	)
+
+	if ctx.Query("page") == "" && len(list) == 0 {
+		h.HTML(ctx, auth.Auth(ctx), types.Panel{
+			Content: pluginStore404(),
+			CSS: template.CSS(`.plugin-store-404-content {
+    margin: auto;
+    width: 80%;
+    text-align: center;
+    color: #9e9e9e;
+    font-size: 17px;
+    height: 250px;
+    line-height: 250px;
+}`),
+			Description: language.GetFromHtml("plugin store"),
+			Title:       language.GetFromHtml("plugin store"),
+		})
+		return
+	}
+
+	for i := 0; i < len(list); i += 3 {
+		box1 := aBox().
+			SetBody(h.pluginStoreBox(GetPluginBoxParamFromPlug(list[i]))).
+			GetContent()
+		col1 := aCol().SetSize(size).SetContent(box1).GetContent()
+		box2, col2, box3, col3 := template.HTML(""), template.HTML(""), template.HTML(""), template.HTML("")
+		if i+1 < len(list) {
+			box2 = aBox().
+				SetBody(h.pluginStoreBox(GetPluginBoxParamFromPlug(list[i+1]))).
+				GetContent()
+			col2 = aCol().SetSize(size).SetContent(box2).GetContent()
+			if i+2 < len(list) {
+				box3 = aBox().
+					SetBody(h.pluginStoreBox(GetPluginBoxParamFromPlug(list[i+2]))).
+					GetContent()
+				col3 = aCol().SetSize(size).SetContent(box3).GetContent()
+			}
+		}
+		rows += aRow().SetContent(col1 + col2 + col3).GetContent()
+	}
+
+	detailPopupModal := template2.Default().Popup().SetID("detail-popup-modal").
+		SetTitle(plugWordHTML("plugin detail")).
+		SetBody(pluginsPageDetailPopupBody()).
+		SetWidth("730px").
+		SetHeight("400px").
+		SetFooter("1").
+		GetContent()
+
+	buyPopupModal := template2.Default().Popup().SetID("buy-popup-modal").
+		SetTitle(plugWordHTML("plugin detail")).
+		SetWidth("730px").
+		SetHeight("400px").
+		SetFooter("1").
+		GetContent()
+
+	loginPopupModal := template2.Default().Popup().SetID("login-popup-modal").
+		SetTitle(plugWordHTML("login to goadmin member system")).
+		SetBody(aForm().SetContent(types.FormFields{
+			{Field: "name", Head: plugWord("account"), FormType: form.Text, Editable: true},
+			{Field: "password", Head: plugWord("password"), FormType: form.Password, Editable: true,
+				HelpMsg: template.HTML(fmt.Sprintf(plugWord("no account? click %s here %s to register."),
+					"<a target='_blank' href='http://www.go-admin.cn/register'>", "</a>"))},
+		}).GetContent()).
+		SetWidth("540px").
+		SetHeight("250px").
+		SetFooterHTML(template.HTML(`<button type="button" class="btn btn-primary" onclick="login()">` +
+			plugWord("login") + `</button>`)).
+		GetContent()
+
+	h.HTML(ctx, auth.Auth(ctx), types.Panel{
+		Content:     rows + detailPopupModal + buyPopupModal + loginPopupModal,
+		CSS:         pluginsStorePageCSS + template.CSS(page.CSS),
+		JS:          template.JS(page.JS) + GetPluginsPageJS(PluginsPageJSData{Prefix: h.config.Prefix()}),
+		Description: language.GetFromHtml("plugin store"),
+		Title:       language.GetFromHtml("plugin store"),
+	})
+}
+```
+
+##### plugins.go > PluginDetail
+``` shell
+func (h *Handler) PluginDetail(ctx *context.Context) {
+
+	name := ctx.Query("name")
+
+	plug, exist := plugins.FindByNameAll(name)
+	if !exist {
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": 400,
+			"msg":  "bad request",
+		})
+		return
+	}
+
+	info := plug.GetInfo()
+
+	if info.MiniCover == "" {
+		info.MiniCover = config.Url("/assets/dist/img/plugin_default.png")
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": 0,
+		"msg":  "ok",
+		"data": gin.H{
+			"mini_cover":      info.MiniCover,
+			"title":           language.GetWithScope(info.Title, name),
+			"author":          fmt.Sprintf(plugWord("provided by %s"), language.GetWithScope(info.Author, name)),
+			"introduction":    language.GetWithScope(info.Description, name),
+			"website":         language.GetWithScope(info.Website, name),
+			"version":         language.GetWithScope(info.Version, name),
+			"created_at":      language.GetWithScope(info.CreateDate.Format("2006-01-02"), name),
+			"updated_at":      language.GetWithScope(info.UpdateDate.Format("2006-01-02"), name),
+			"downloaded":      info.Downloaded,
+			"download_reboot": plugins.Exist(plug),
+			"skip":            info.SkipInstallation,
+			"uuid":            info.Uuid,
+			"upgrade":         info.CanUpdate,
+			"install":         plug.IsInstalled(),
+			"free":            info.IsFree(),
+		},
+	})
+}
+```
+
+##### plugins.go > GetPluginParamFromPlug
+``` shell
+func GetPluginBoxParamFromPlug(plug plugins.Plugin) PluginBoxParam {
+	return PluginBoxParam{
+		Info:           plug.GetInfo(),
+		Install:        plug.IsInstalled(),
+		Upgrade:        plug.GetInfo().CanUpdate,
+		Skip:           plug.GetInfo().SkipInstallation,
+		DownloadReboot: plugins.Exist(plug),
+		Name:           plug.Name(),
+		IndexURL:       plug.GetIndexURL(),
+	}
+}
+```
+
+##### plugins.go > PluginDownload
+``` shell
+# ...
+func (h *Handler) PluginDownload(ctx *context.Context) {
+
+	if !h.config.Debug {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  plugWord("change to debug mode first"),
+		})
+		return
+	}
+
+	name := ctx.FormValue("name")
+
+	if name == "" {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  plugWord("download fail, wrong name"),
+		})
+		return
+	}
+
+	plug, exist := plugins.FindByNameAll(name)
+
+	if !exist {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  plugWord("download fail, plugin not exist"),
+		})
+		return
+	}
+
+	if !plug.GetInfo().IsFree() && !plug.GetInfo().HasBought {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"msg":  plugWord("download fail, plugin has not been bought"),
+		})
+		return
+	}
+
+	downloadURL := plug.GetInfo().Url
+	extraDownloadURL := plug.GetInfo().ExtraDownloadUrl
+
+	if !plug.GetInfo().IsFree() {
+		var err error
+		downloadURL, extraDownloadURL, err = remote_server.GetDownloadURL(plug.GetInfo().Uuid, ctx.Cookie(remote_server.TokenKey))
+		if err != nil {
+			logger.Error("download plugins error", err)
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"code": 500,
+				"msg":  plugWord("download fail"),
+			})
+			return
+		}
+	}
+
+	tempFile := "./temp-" + utils.Uuid(10) + ".zip"
+
+	err := utils.DownloadTo(downloadURL, tempFile)
+
+	if err != nil {
+		logger.Error("download plugins error", map[string]interface{}{
+			"error":       err,
+			"downloadURL": downloadURL,
+		})
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 500,
+			"msg":  plugWord("download fail"),
+		})
+		return
+	}
+
+	gopath := os.Getenv("GOPATH")
+
+	if gopath == "" {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 500,
+			"msg":  plugWord("golang develop environment does not exist"),
+		})
+		return
+	}
+
+	gomodule := os.Getenv("GO111MODULE")
+	base := filepath.Dir(plug.GetInfo().ModulePath)
+	installPath := ""
+
+	if gomodule == "off" {
+		installPath = filepath.ToSlash(gopath + "/src/" + base)
+	} else {
+		installPath = filepath.ToSlash(gopath + "/pkg/mod/" + base)
+	}
+
+	err = utils.UnzipDir(tempFile, installPath)
+
+	if err != nil {
+		logger.Error("download plugins, unzip error", map[string]interface{}{
+			"error":       err,
+			"installPath": installPath,
+		})
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"code": 500,
+			"msg":  plugWord("download fail"),
+		})
+		return
+	}
+
+	_ = os.Remove(tempFile)
+
+	if len(downloadURL) > 18 && downloadURL[:18] == "https://github.com" {
+		name := filepath.Base(plug.GetInfo().ModulePath)
+		version := strings.ReplaceAll(plug.GetInfo().Version, "v", "")
+		rawPath := installPath + "/" + name
+		nowPath := rawPath + "-" + version
+		if gomodule == "off" {
+			err = os.Rename(nowPath, rawPath)
+		} else {
+			err = os.Rename(nowPath, rawPath+"@"+plug.GetInfo().Version)
+		}
+		if err != nil {
+			logger.Error("download plugins, rename error", map[string]interface{}{
+				"error":   err,
+				"nowPath": nowPath,
+				"rawPath": rawPath,
+			})
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"code": 500,
+				"msg":  plugWord("download fail"),
+			})
+			return
+		}
+	} else if gomodule != "off" {
+		rawPath := installPath + "/" + name
+		err = os.Rename(rawPath, rawPath+"@"+plug.GetInfo().Version)
+		if err != nil {
+			logger.Error("download plugins, rename error", map[string]interface{}{
+				"error":   err,
+				"rawPath": rawPath,
+			})
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"code": 500,
+				"msg":  plugWord("download fail"),
+			})
+			return
+		}
+	}
+
+	if h.config.BootstrapFilePath != "" && utils.FileExist(h.config.BootstrapFilePath) {
+		content, err := ioutil.ReadFile(h.config.BootstrapFilePath)
+		if err != nil {
+			logger.Error("read bootstrap file error: ", err)
+		} else {
+			err = ioutil.WriteFile(h.config.BootstrapFilePath, []byte(string(content)+`
+import _ "`+plug.GetInfo().ModulePath+`"`), 0644)
+			if err != nil {
+				logger.Error("write bootstrap file error: ", err)
+			}
+		}
+	}
+
+	if h.config.GoModFilePath != "" && utils.FileExist(h.config.GoModFilePath) &&
+		plug.GetInfo().CanUpdate && plug.GetInfo().OldVersion != "" {
+		content, _ := ioutil.ReadFile(h.config.BootstrapFilePath)
+		src := plug.GetInfo().ModulePath + " " + plug.GetInfo().OldVersion
+		dist := plug.GetInfo().ModulePath + " " + plug.GetInfo().Version
+		content = bytes.ReplaceAll(content, []byte(src), []byte(dist))
+		_ = ioutil.WriteFile(h.config.BootstrapFilePath, content, 0644)
+	}
+
+	// TODO: 实现运行环境与编译环境隔离
+
+	if plug.GetInfo().ExtraDownloadUrl != "" {
+		err = utils.DownloadTo(extraDownloadURL, "./"+plug.Name()+"_extra_"+
+			fmt.Sprintf("%d", time.Now().Unix())+".zip")
+		if err != nil {
+			logger.Error("failed to download "+plug.Name()+" extra data: ", err)
+		}
+	}
+
+	plug.(*plugins.BasePlugin).Info.Downloaded = true
+	plug.(*plugins.BasePlugin).Info.CanUpdate = false
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"code": 0,
+		"msg":  plugWord("download success, restart to install"),
+	})
+}
+```
+
+##### plugins.go > ServerLogin
+``` shell
+func (h *Handler) ServerLogin(ctx *context.Context) {
+	param := guard.GetServerLoginParam(ctx)
+	res := remote_server.Login(param.Account, param.Password)
+	if res.Code == 0 && res.Data.Token != "" {
+		ctx.SetCookie(&http.Cookie{
+			Name:     remote_server.TokenKey,
+			Value:    res.Data.Token,
+			Expires:  time.Now().Add(time.Second * time.Duration(res.Data.Expire/1000)),
+			HttpOnly: true,
+			Path:     "/",
+		})
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": res.Code,
+		"data": res.Data,
+		"msg":  res.Msg,
+	})
+}
+```
+
+##### show.go > ShowInfo 
+``` shell
+# ShowInfo show info page
+func (h *Handler) ShowInfo(ctx *context.Context) {
+
+	prefix := ctx.Query(constant.PrefixKey)
+
+	panel := h.table(prefix, ctx)
+
+	if panel.GetOnlyUpdateForm() {
+		ctx.Redirect(h.routePathWithPrefix("show_edit", prefix))
+		return
+	}
+
+	if panel.GetOnlyNewForm() {
+		ctx.Redirect(h.routePathWithPrefix("show_new", prefix))
+		return
+	}
+
+	if panel.GetOnlyDetail() {
+		ctx.Redirect(h.routePathWithPrefix("detail", prefix))
+		return
+	}
+
+	params := parameter.GetParam(ctx.Request.URL, panel.GetInfo().DefaultPageSize, panel.GetInfo().SortField,
+		panel.GetInfo().GetSort())
+
+	buf := h.showTable(ctx, prefix, params, panel)
+	ctx.HTML(http.StatusOK, buf.String())
+}
+```
+
+##### show.go > Assets 
+``` shell 
+# Assets return frontend assets accoring the request path.
+func (h *Handler) Assets(ctx *context.Context) {
+	filepath := h.config.URLRemovePrefix(ctx.Path())
+	data, err := aTemplate().GetAsset(filepath)
+
+	if err != nil {
+		data, err = template.GetAsset(filepath)
+		if err != nil {
+			logger.Error("asset err", err)
+			ctx.Write(http.StatusNotFound, map[string]string{}, "")
+			return
+		}
+	}
+
+	var contentType = mime.TypeByExtension(path.Ext(filepath))
+
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	etag := fmt.Sprintf("%x", md5.Sum(data))
+
+	if match := ctx.Headers("If-None-Match"); match != "" {
+		if strings.Contains(match, etag) {
+			ctx.SetStatusCode(http.StatusNotModified)
+			return
+		}
+	}
+
+	ctx.DataWithHeaders(http.StatusOK, map[string]string{
+		"Content-Type":   contentType,
+		"Cache-Control":  "max-age=2592000",
+		"Content-Length": strconv.Itoa(len(data)),
+		"ETag":           etag,
+	}, data)
+}
+```
+
+##### show.go > Export
+``` shell 
+# Export export table rows as exel object
+func (h *Handler) Export(ctx *context.Context) {
+	param := guard.GetExportParam(ctx)
+
+	tableName := "Sheet1"
+	prefix := ctx.Query(constant.PrefixKey)
+	panel := h.table(prefix, ctx)
+
+	f := excelize.NewFile()
+	index := f.NewSheet(tableName)
+	f.SetActiveSheet(index)
+
+	var (
+		infoData  table.PanelInfo
+		fileName  string
+		err       error
+		tableInfo = panel.GetInfo()
+		params    parameter.Parameters
+	)
+
+	if fn := panel.GetInfo().ExportProcessFn; fn != nil {
+		params = parameter.GetParam(ctx.Request.URL, tableInfo.DefaultPageSize, tableInfo.SortField,
+			tableInfo.GetSort())
+		p, err := fn(params.WithIsAll(param.IsAll))
+		if err != nil {
+			response.Error(ctx, "export error")
+			return
+		}
+		infoData.Thead = p.Thead
+		infoData.InfoList = p.InfoList
+	} else {
+		if len(param.Id) == 0 {
+			params = parameter.GetParam(ctx.Request.URL, tableInfo.DefaultPageSize, tableInfo.SortField,
+				tableInfo.GetSort())
+			infoData, err = panel.GetData(params.WithIsAll(param.IsAll))
+			fileName = fmt.Sprintf("%s-%d-page-%s-pageSize-%s.xlsx", tableInfo.Title, time.Now().Unix(),
+				params.Page, params.PageSize)
+		} else {
+			infoData, err = panel.GetDataWithIds(parameter.GetParam(ctx.Request.URL,
+				tableInfo.DefaultPageSize, tableInfo.SortField, tableInfo.GetSort()).WithPKs(param.Id...))
+			fileName = fmt.Sprintf("%s-%d-id-%s.xlsx", tableInfo.Title, time.Now().Unix(), strings.Join(param.Id, "_"))
+		}
+		if err != nil {
+			response.Error(ctx, "export error")
+			return
+		}
+	}
+
+	// TODO: support any numbers of fields.
+	orders := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
+		"L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
+
+	if len(infoData.Thead) > 26 {
+		j := -1
+		for i := 0; i < len(infoData.Thead)-26; i++ {
+			if i%26 == 0 {
+				j++
+			}
+			letter := orders[j] + orders[i%26]
+			orders = append(orders, letter)
+		}
+	}
+
+	columnIndex := 0
+	for _, head := range infoData.Thead {
+		if !head.Hide {
+			f.SetCellValue(tableName, orders[columnIndex]+"1", head.Head)
+			columnIndex++
+		}
+	}
+
+	count := 2
+	for _, info := range infoData.InfoList {
+		columnIndex = 0
+		for _, head := range infoData.Thead {
+			if !head.Hide {
+				if tableInfo.IsExportValue() {
+					f.SetCellValue(tableName, orders[columnIndex]+strconv.Itoa(count), info[head.Field].Value)
+				} else {
+					f.SetCellValue(tableName, orders[columnIndex]+strconv.Itoa(count), info[head.Field].Content)
+				}
+				columnIndex++
+			}
+		}
+		count++
+	}
+
+	buf, err := f.WriteToBuffer()
+
+	if err != nil || buf == nil {
+		response.Error(ctx, "export error")
+		return
+	}
+
+	ctx.AddHeader("content-disposition", `attachment; filename=`+fileName)
+	ctx.Data(200, "application/vnd.ms-excel", buf.Bytes())
+}
+```
+
+##### system.go > SystemInfo
+``` shell 
+#...
+func (h *Handler) SystemInfo(ctx *context.Context) {
+
+	size := types.Size(6, 6, 6)
+
+	box1 := aBox().
+		WithHeadBorder().
+		SetHeader("<b>" + lg("application") + "</b>").
+		SetBody(stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("app_name")},
+				"value": types.InfoItem{Content: "GoAdmin"},
+			}, {
+				"key":   types.InfoItem{Content: lg("go_admin_version")},
+				"value": types.InfoItem{Content: template.HTML(system.Version())},
+			}, {
+				"key":   types.InfoItem{Content: lg("theme_name")},
+				"value": types.InfoItem{Content: template.HTML(aTemplate().Name())},
+			}, {
+				"key":   types.InfoItem{Content: lg("theme_version")},
+				"value": types.InfoItem{Content: template.HTML(aTemplate().GetVersion())},
+			},
+		})).
+		GetContent()
+
+	app := system.GetAppStatus()
+
+	box2 := aBox().
+		WithHeadBorder().
+		SetHeader("<b>" + lg("application run") + "</b>").
+		SetBody(stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("current_heap_usage")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapAlloc)},
+			},
+			{
+				"key":   types.InfoItem{Content: lg("heap_memory_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapSys)},
+			},
+			{
+				"key":   types.InfoItem{Content: lg("heap_memory_idle")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapIdle)},
+			},
+			{
+				"key":   types.InfoItem{Content: lg("heap_memory_in_use")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapInuse)},
+			},
+			{
+				"key":   types.InfoItem{Content: lg("heap_memory_released")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapReleased)},
+			},
+			{
+				"key":   types.InfoItem{Content: lg("heap_objects")},
+				"value": types.InfoItem{Content: itos(app.HeapObjects)},
+			},
+		}) + `<div><hr></div>` + stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("next_gc_recycle")},
+				"value": types.InfoItem{Content: template.HTML(app.NextGC)},
+			}, {
+				"key":   types.InfoItem{Content: lg("last_gc_time")},
+				"value": types.InfoItem{Content: template.HTML(app.LastGC)},
+			}, {
+				"key":   types.InfoItem{Content: lg("total_gc_pause")},
+				"value": types.InfoItem{Content: template.HTML(app.PauseTotalNs)},
+			}, {
+				"key":   types.InfoItem{Content: lg("last_gc_pause")},
+				"value": types.InfoItem{Content: template.HTML(app.PauseNs)},
+			}, {
+				"key":   types.InfoItem{Content: lg("gc_times")},
+				"value": types.InfoItem{Content: itos(app.NumGC)},
+			},
+		})).
+		GetContent()
+
+	col1 := aCol().SetSize(size).SetContent(box1 + box2).GetContent()
+
+	box4 := aBox().
+		WithHeadBorder().
+		SetHeader("<b>" + lg("application run") + "</b>").
+		SetBody(stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("golang_version")},
+				"value": types.InfoItem{Content: template.HTML(runtime.Version())},
+			}, {
+				"key":   types.InfoItem{Content: lg("process_id")},
+				"value": types.InfoItem{Content: itos(os.Getpid())},
+			}, {
+				"key":   types.InfoItem{Content: lg("server_uptime")},
+				"value": types.InfoItem{Content: template.HTML(app.Uptime)},
+			}, {
+				"key":   types.InfoItem{Content: lg("current_goroutine")},
+				"value": types.InfoItem{Content: itos(app.NumGoroutine)},
+			},
+		}) + `<div><hr></div>` + stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("current_memory_usage")},
+				"value": types.InfoItem{Content: template.HTML(app.MemAllocated)},
+			}, {
+				"key":   types.InfoItem{Content: lg("total_memory_allocated")},
+				"value": types.InfoItem{Content: template.HTML(app.MemTotal)},
+			}, {
+				"key":   types.InfoItem{Content: lg("memory_obtained")},
+				"value": types.InfoItem{Content: itos(app.MemSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("pointer_lookup_times")},
+				"value": types.InfoItem{Content: itos(app.Lookups)},
+			}, {
+				"key":   types.InfoItem{Content: lg("memory_allocate_times")},
+				"value": types.InfoItem{Content: itos(app.MemMallocs)},
+			}, {
+				"key":   types.InfoItem{Content: lg("memory_free_times")},
+				"value": types.InfoItem{Content: itos(app.MemFrees)},
+			},
+		}) + `<div><hr></div>` + stripedTable([]map[string]types.InfoItem{
+			{
+				"key":   types.InfoItem{Content: lg("bootstrap_stack_usage")},
+				"value": types.InfoItem{Content: template.HTML(app.StackInuse)},
+			}, {
+				"key":   types.InfoItem{Content: lg("stack_memory_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.StackSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("mspan_structures_usage")},
+				"value": types.InfoItem{Content: template.HTML(app.MSpanInuse)},
+			}, {
+				"key":   types.InfoItem{Content: lg("mspan_structures_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.HeapSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("mcache_structures_usage")},
+				"value": types.InfoItem{Content: template.HTML(app.MCacheInuse)},
+			}, {
+				"key":   types.InfoItem{Content: lg("mcache_structures_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.MCacheSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("profiling_bucket_hash_table_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.BuckHashSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("gc_metadata_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.GCSys)},
+			}, {
+				"key":   types.InfoItem{Content: lg("other_system_allocation_obtained")},
+				"value": types.InfoItem{Content: template.HTML(app.OtherSys)},
+			},
+		})).
+		GetContent()
+
+	col2 := aCol().SetSize(size).SetContent(box4).GetContent()
+
+	row := aRow().SetContent(col1 + col2).GetContent()
+
+	h.HTML(ctx, auth.Auth(ctx), types.Panel{
+		Content:     row,
+		Description: language.GetFromHtml("system info", "system"),
+		Title:       language.GetFromHtml("system info", "system"),
+	})
+}
+```
+
+##### update.go > Update
+``` shell
+# Update update the table row of given id
+func (h *Handler) Update(ctx *context.Context) {
+
+	param := guard.GetUpdateParam(ctx)
+
+	err := param.Panel.UpdateData(param.Value)
+
+	if err != nil {
+		response.Error(ctx, err.Error())
+		return
+	}
+
+	response.Ok(ctx)
+}
+```
+
+##### operation.go > Operation
+``` shell 
+func (h *Handler) Operation(ctx *context.Context) {
+	id := ctx.Query("__goadmin_op_id")
+	if !h.OperationHandler(config.Url("/operation/"+id), ctx) {
+		errMsg := "not found"
+		if ctx.Headers(constant.PjaxHeader) == "" && ctx.Method() != "GET" {
+			response.BadRequest(ctx, errMsg)
+		} else {
+			response.Alert(ctx, errMsg, errMsg, errMsg, h.conn, h.navButtons)
+		}
+		return
+	}
+}
+```
+
+##### operation.go > RecordOperationLog
+``` shell 
+# RecordOpertationLog record all operation logs, store into database
+func (h *Handler) RecordOperationLog(ctx *context.Context) {
+	if user, ok := ctx.UserValue["user"].(models.UserModel); ok {
+		var input []byte
+		form := ctx.Request.MultipartForm
+		if form != nil {
+			input, _ = json.Marshal((*form).Value)
+		}
+
+		models.OperationLog().SetConn(h.conn).New(user.Id, ctx.Path(), ctx.Method(), ctx.LocalIP(), string(input))
+	}
+}
+```
+
+##### common_test.go > TestIsInfoUrl 
+``` shell 
+func TestIsInfoUrl(t *testing.T) {
+	u := "https://localhost:8098/admin/info/user?id=sdfs"
+	assert.Equal(t, true, isInfoUrl(u))
+}
+```
+
+##### common_test.go > TestIsNewUrl 
+``` shell 
+func TestIsNewUrl(t *testing.T) {
+	u := "https://localhost:8098/admin/info/user/new?id=sdfs"
+	assert.Equal(t, true, isNewUrl(u, "user"))
+}
+
 ```
