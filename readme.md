@@ -1,7 +1,8 @@
-## Controller 
-<!-- https:#github.com/GoAdminGroup/go-admin@v1.2.23/plugins/admin/controller -->
+<h1>GoAdmin References</h1>
 
+# [Controller](#controllers) | [Database](#database)
 
+## Controllers
 - [ApiCreate](#api_creatego--apicreate)
 - [ApiCreateForm](#api_creatego--apicreateform)
 - [ApiDetail](#api_detailgo--apidetail)
@@ -43,7 +44,6 @@
 - [Update](#updatego--update)
 - [TestInfoUrl](#common_testgo--testisinfourl)
 - [TestIsNewUrl](#common_testgo--testisnewurl)
-
 
 -----------------------------------
 ### Controller API
@@ -1931,3 +1931,7 @@ func TestIsNewUrl(t *testing.T) {
 }
 
 ```
+
+---------------
+
+## Database
