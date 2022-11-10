@@ -20,14 +20,14 @@
 - [GlobalDetaultHandler](#handlergo--globaldefenderhandler)
 - [ShowInstall](#installgo--showinstall)
 - [CheckDatabase](#installgo--checkdatabase)
-- [ShowMenu] 
-- [ShowNewMenu] 
-- [ShowEditMenu] 
-- [DeleteMenu] 
-- [EditMenu] 
-- [NewMenu] 
-- [MenuOrder] 
-- [ShowNewForm] 
+- [ShowMenu](#menugo--showmenu)
+- [ShowNewMenu](#menugo--showmenu)
+- [ShowEditMenu](#menugo--showeditmenu)
+- [DeleteMenu](#menugo--deletemenu)
+- [EditMenu](#menugo--editmenu)
+- [NewMenu](#menugo--newmenu)
+- [MenuOrder](#menugo--menuorder)
+- [ShowNewForm]
 - [NewForm] 
 - [Operation] 
 - [RecordOperationLog]
@@ -848,4 +848,163 @@ func (h *Handler) CheckDatabase(ctx *context.Context) {
 	})
 }
 ```
-##### menu.go > 
+
+##### menu.go > ShowMenu
+``` shell
+# ShowMenu show menu info page
+func (h *Handler) ShowMenu(ctx *context.Context) {
+	h.getMenuInfoPanel(ctx, "", "")
+}
+```
+
+##### menu.go > ShowNewMenu
+``` shell 
+# ShowNewMenu show new menu page
+func (h *Handler) ShowNewMenu(ctx *context.Context) {
+	h.showNewMenu(ctx, nil)
+}
+```
+
+##### menu.go > ShowEditMenu
+``` shell
+# ShowEditMenu show edit menu page
+func (h *Handler) ShowEditMenu(ctx *context.Context) {
+
+	plugName := getPlugNameFromReferer(ctx)
+
+	if ctx.Query("id") == "" {
+		h.getMenuInfoPanel(ctx, "", template.Get(h.config.Theme).Alert().Warning(errors.WrongID))
+
+		ctx.AddHeader("Content-Type", "text/html; charset=utf-8")
+		ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+getMenuPlugNameParams(plugName))
+		return
+	}
+
+	model := h.table("menu", ctx)
+	formInfo, err := model.GetDataWithId(parameter.BaseParam().WithPKs(ctx.Query("id")))
+
+	user := auth.Auth(ctx)
+
+	if err != nil {
+		h.HTMLPlug(ctx, user, template.WarningPanelWithDescAndTitle(err.Error(),
+			model.GetForm().Description, model.GetForm().Title), plugName)
+		return
+	}
+
+	h.showEditMenu(ctx, plugName, formInfo, nil)
+}
+```
+
+##### menu.go > DeleteMenu
+``` shell
+# DeleteMenu delete the menu of given id
+func (h *Handler) DeleteMenu(ctx *context.Context) {
+	models.MenuWithId(guard.GetMenuDeleteParam(ctx).Id).SetConn(h.conn).Delete()
+	response.OkWithMsg(ctx, language.Get("delete succeed"))
+}
+```
+
+##### menu.go > EditMenu
+``` shell
+# EditMenu edit the menu of given id
+func (h *Handler) EditMenu(ctx *context.Context) {
+
+	param := guard.GetMenuEditParam(ctx)
+	params := getMenuPlugNameParams(param.PluginName)
+
+	if param.HasAlert() {
+		h.getMenuInfoPanel(ctx, param.PluginName, param.Alert)
+		ctx.AddHeader("Content-Type", "text/html; charset=utf-8")
+		ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+		return
+	}
+
+	menuModel := models.MenuWithId(param.Id).SetConn(h.conn)
+
+	// TODO: use transaction
+	deleteRolesErr := menuModel.DeleteRoles()
+	if db.CheckError(deleteRolesErr, db.DELETE) {
+		formInfo, _ := h.table("menu", ctx).GetDataWithId(parameter.BaseParam().WithPKs(param.Id))
+		h.showEditMenu(ctx, param.PluginName, formInfo, deleteRolesErr)
+		ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+		return
+	}
+	for _, roleId := range param.Roles {
+		_, addRoleErr := menuModel.AddRole(roleId)
+		if db.CheckError(addRoleErr, db.INSERT) {
+			formInfo, _ := h.table("menu", ctx).GetDataWithId(parameter.BaseParam().WithPKs(param.Id))
+			h.showEditMenu(ctx, param.PluginName, formInfo, addRoleErr)
+			ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+			return
+		}
+	}
+
+	_, updateErr := menuModel.Update(param.Title, param.Icon, param.Uri, param.Header, param.PluginName, param.ParentId)
+
+	if db.CheckError(updateErr, db.UPDATE) {
+		formInfo, _ := h.table("menu", ctx).GetDataWithId(parameter.BaseParam().WithPKs(param.Id))
+		h.showEditMenu(ctx, param.PluginName, formInfo, updateErr)
+		ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+		return
+	}
+
+	h.getMenuInfoPanel(ctx, param.PluginName, "")
+	ctx.AddHeader("Content-Type", "text/html; charset=utf-8")
+	ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+}
+```
+
+##### menu.go > NewMenu
+``` shell
+func (h *Handler) NewMenu(ctx *context.Context) {
+
+	param := guard.GetMenuNewParam(ctx)
+	params := getMenuPlugNameParams(param.PluginName)
+
+	if param.HasAlert() {
+		h.getMenuInfoPanel(ctx, param.PluginName, param.Alert)
+		ctx.AddHeader("Content-Type", "text/html; charset=utf-8")
+		ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+		return
+	}
+
+	user := auth.Auth(ctx)
+
+	// TODO: use transaction
+	menuModel, createErr := models.Menu().SetConn(h.conn).
+		New(param.Title, param.Icon, param.Uri, param.Header, param.PluginName, param.ParentId,
+			(menu.GetGlobalMenu(user, h.conn, ctx.Lang(), param.PluginName)).MaxOrder+1)
+
+	if db.CheckError(createErr, db.INSERT) {
+		h.showNewMenu(ctx, createErr)
+		return
+	}
+
+	for _, roleId := range param.Roles {
+		_, addRoleErr := menuModel.AddRole(roleId)
+		if db.CheckError(addRoleErr, db.INSERT) {
+			h.showNewMenu(ctx, addRoleErr)
+			return
+		}
+	}
+
+	menu.GetGlobalMenu(user, h.conn, ctx.Lang(), param.PluginName).AddMaxOrder()
+
+	h.getMenuInfoPanel(ctx, param.PluginName, "")
+	ctx.AddHeader("Content-Type", "text/html; charset=utf-8")
+	ctx.AddHeader(constant.PjaxUrlHeader, h.routePath("menu")+params)
+}
+```
+
+##### menu.go > MenuOrder
+``` shell 
+func (h *Handler) MenuOrder(ctx *context.Context) {
+
+	var data []map[string]interface{}
+	_ = json.Unmarshal([]byte(ctx.FormValue("_order")), &data)
+
+	models.Menu().SetConn(h.conn).ResetOrder([]byte(ctx.FormValue("_order")))
+
+	response.Ok(ctx)
+}
+```
