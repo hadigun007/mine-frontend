@@ -1,5 +1,5 @@
 ## Controller 
-<!-- https://github.com/GoAdminGroup/go-admin@v1.2.23/plugins/admin/controller -->
+<!-- https:#github.com/GoAdminGroup/go-admin@v1.2.23/plugins/admin/controller -->
 
 
 - [ApiCreate](#api_creatego--apicreate)
@@ -424,8 +424,7 @@ func (h *Handler) Logout(ctx *context.Context) {
 
 ##### auth.go > ShowLogin
 ``` shell
-# show the login page
-// ShowLogin show the login page.
+# ShowLogin show the login page.
 func (h *Handler) ShowLogin(ctx *context.Context) {
 
 	tmpl, name := template.GetComp("login").GetTemplate()
@@ -460,13 +459,13 @@ func (h *Handler) Delete(ctx *context.Context) {
 
 	param := guard.GetDeleteParam(ctx)
 
-	//token := ctx.FormValue("_t")
-	//
-	//if !auth.TokenHelper.CheckToken(token) {
-	//	ctx.SetStatusCode(http.StatusBadRequest)
-	//	ctx.WriteString(`{"code":400, "msg":"delete fail"}`)
-	//	return
-	//}
+	#token := ctx.FormValue("_t")
+	#
+	#if !auth.TokenHelper.CheckToken(token) {
+	#	ctx.SetStatusCode(http.StatusBadRequest)
+	#	ctx.WriteString(`{"code":400, "msg":"delete fail"}`)
+	#	return
+	#}
 
 	if err := h.table(param.Prefix, ctx).DeleteData(param.Id); err != nil {
 		logger.Error(err)
@@ -788,13 +787,13 @@ func (h *Handler) GlobalDeferHandler(ctx *context.Context) {
 func (h *Handler) ShowInstall(ctx *context.Context) {
 
 	buffer := new(bytes.Buffer)
-	//template.GetInstallPage(buffer)
+	#template.GetInstallPage(buffer)
 
-	//rs, _ := mysql.Query("show tables;")
-	//fmt.Println(rs[0]["Tables_in_godmin"])
+	#rs, _ := mysql.Query("show tables;")
+	#fmt.Println(rs[0]["Tables_in_godmin"])
 
-	//rs2, _ := mysql.Query("show columns from users")
-	//fmt.Println(rs2[0]["Field"])
+	#rs2, _ := mysql.Query("show columns from users")
+	#fmt.Println(rs2[0]["Field"])
 
 	ctx.HTML(http.StatusOK, buffer.String())
 }
@@ -829,7 +828,7 @@ func (h *Handler) CheckDatabase(ctx *context.Context) {
 
 	}
 
-	//db.InitDB(username, password, port, ip, databaseName, 100, 100)
+	#db.InitDB(username, password, port, ip, databaseName, 100, 100)
 
 	tables := make([]map[string]interface{}, 0)
 
